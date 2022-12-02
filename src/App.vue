@@ -1,7 +1,5 @@
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from "vue";
-import FullCalendar from "./components/FullCalendar.vue";
-import DateTimePicker from './components/DateTimePicker.vue'
 
 const drawer = ref(true);
 const rail = ref(true);

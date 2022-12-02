@@ -29,8 +29,8 @@ defineProps({
 </template>
 <style lang="scss">
 .element-button {
-    // .v-btn__content {
-    //     color: #ffffff;
-    // }
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
 }
 </style>

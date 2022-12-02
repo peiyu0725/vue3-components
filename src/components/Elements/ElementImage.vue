@@ -17,5 +17,7 @@ defineProps({
     <img :src="src" :width="width" :height="height" :style="{ top: `${y}px`, left: `${x}px` }" />
 </template>
 <style lang="scss" scoped>
-
+img {
+    min-width: 40px;
+}
 </style>

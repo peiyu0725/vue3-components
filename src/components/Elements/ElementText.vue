@@ -1,13 +1,10 @@
 <script setup>
 const props = defineProps({
     color: String,
-    width: {
+    text: String,
+    fontSize: {
         type: Number,
-        default: 30
-    },
-    height: {
-        type: Number,
-        default: 30
+        default: 16
     },
     x: {
         type: Number,
@@ -20,13 +17,17 @@ const props = defineProps({
 });
 </script>
 <template>
-    <div class="element-rect"
-        :style="{ backgroundColor: color, width: `${width}px`, height: `${height}px`, top: `${y}px`, left: `${x}px` }">
+    <div class="element-text" :style="{ fontSize: `${fontSize}px`, color: color, top: `${y}px`, left: `${x}px` }">
+        {{ text }}
     </div>
 </template>
 <style lang="scss" scoped>
-.element-rect {
+.element-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-width: 40px;
     min-height: 40px;
+    overflow: hidden;
 }
 </style>

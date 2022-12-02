@@ -6,6 +6,7 @@ import draggable from "vuedraggable"
 import ElementButton from '../components/Elements/ElementButton.vue'
 import ElementRect from '../components/Elements/ElementRect.vue'
 import ElementImage from '../components/Elements/ElementImage.vue'
+import ElementText from '../components/Elements/ElementText.vue'
 
 const moveableRef = ref(null)
 const selectoRef = ref(null)
@@ -15,10 +16,17 @@ const dragItem = ref(null)
 const catchImageEvent = ref(null)
 const elementMapping = computed(() => {
   return {
+    text: {
+      type: 'text',
+      options: {
+        color: '#000000',
+        text: 'Text',
+      }
+    },
     rect: {
       type: 'rect',
       options: {
-        color: '#009BF0',
+        color: '#D0EBFF',
         width: 100,
         height: 100
       }
@@ -36,15 +44,16 @@ const elementMapping = computed(() => {
     image: {
       type: 'image',
       options: {
-        src: `https://picsum.photos/1920/1080?random&time=${Date.now()}`,
-        width: 576,
-        height: 324
+        // src: `https://picsum.photos/1920/1080?random&time=${Date.now()}`,
+        // width: 576,
+        // height: 324
       }
     }
   }
 })
 const elements = reactive([])
 const elementList = reactive([
+  { text: 'Text', value: 'text' },
   { text: 'Button', value: 'button' },
   { text: 'Rect', value: 'rect' },
   { text: 'Image', value: 'image' }
@@ -52,7 +61,8 @@ const elementList = reactive([
 const components = {
   button: ElementButton,
   rect: ElementRect,
-  image: ElementImage
+  image: ElementImage,
+  text: ElementText
 }
 
 const moveableOptions = computed(() => {
@@ -61,7 +71,7 @@ const moveableOptions = computed(() => {
     draggable: true,
     resizable: true,
     snappable: true,
-    keepRatio: true,
+    keepRatio: selectedItems.value.length > 0 && (selectedItems.value.length > 1 || selectedItems.value[0].tagName === 'IMG'),
     origin: false,
     bounds: { left: 0, top: 0, right: 0, bottom: 0, position: "css" },
     snapThreshold: 5,
@@ -72,7 +82,6 @@ const moveableOptions = computed(() => {
     snapGridWidth: 20,
     snapGridHeight: 20,
     elementGuidelines: [".element"],
-    padding: { left: 0, top: 0, right: 0, bottom: 0 }
   };
 });
 const selectoOptions = computed(() => {
@@ -124,24 +133,45 @@ const onSelectEnd = (e) => {
   }
 };
 
-const handleDragItemStart = ({ oldIndex }) => {
+const handleDragListItemStart = ({ oldIndex }) => {
   const item = elementList[oldIndex]
   dragItem.value = item
 }
-const handleDragItemEnd = () => {
+const handleDragListItemEnd = () => {
   dragItem.value = null
 }
-const handleDropListItem = (e) => {
-  if (!dragItem.value) return
-  const { offsetX, offsetY } = e
+const handleTouchEndListItem = (e) => {
+  var endTarget = document.elementFromPoint(
+    e.changedTouches[0].clientX,
+    e.changedTouches[0].clientY
+  )
+  let loopCount = 0
+  let target = endTarget
+  if (!target) return
+  let findCardTarget = null
+  while (loopCount < 3) {
+    if (target.classList.contains('editor__drag-area')) {
+      findCardTarget = target
+      break
+    }
+    loopCount += 1
+    target = target.parentNode
+  }
+  if (findCardTarget) {
+    const { x, y } = findCardTarget.getBoundingClientRect()
+    addElement(e.changedTouches[0].clientX - x,
+      e.changedTouches[0].clientY - y)
+  }
+}
+const addElement = (x, y) => {
   const item = elementMapping.value[dragItem.value.value]
   const obj = {
     id: Date.now(),
     type: item.type,
     options: {
       ...item.options,
-      x: offsetX,
-      y: offsetY
+      x,
+      y
     }
   }
   if (dragItem.value.value === 'image') {
@@ -151,6 +181,11 @@ const handleDropListItem = (e) => {
   else {
     elements.push(obj)
   }
+}
+const handleDropListItem = (e) => {
+  if (!dragItem.value) return
+  const { offsetX, offsetY } = e
+  addElement(offsetX, offsetY)
 }
 const handleUploadFile = (e) => {
   const file = e.target.files[0]
@@ -182,10 +217,10 @@ const handleUploadFile = (e) => {
     </div>
     <div class="editor__drag-list">
       <v-list>
-        <draggable v-model="elementList" :sort="false" itemKey="value" @start="handleDragItemStart"
-          @end="handleDragItemEnd">
+        <draggable v-model="elementList" :sort="false" itemKey="value" @start="handleDragListItemStart"
+          @end="handleDragListItemEnd">
           <template #item="{ element }">
-            <v-list-item :value="element.value">{{ element.text }}</v-list-item>
+            <v-list-item :value="element.value" @touchend="handleTouchEndListItem">{{ element.text }}</v-list-item>
           </template>
         </draggable>
       </v-list>
@@ -239,9 +274,9 @@ const handleUploadFile = (e) => {
 
     .v-list {
       height: 100%;
-      // border-radius: 10px;
       padding: 0;
       background-color: #f3f3f35f;
+      overflow: visible;
 
       &-item {
         cursor: grab;
