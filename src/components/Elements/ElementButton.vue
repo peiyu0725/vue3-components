@@ -22,7 +22,7 @@ defineProps({
 });
 </script>
 <template>
-    <v-btn class="element-button" variant="flat" :ripple="false" :color="color" v-bind="$attrs"
+    <v-btn class="element-button" data-type="button" variant="flat" :ripple="false" :color="color" v-bind="$attrs"
         :style="{ width: `${width}px`, height: `${height}px`, top: `${y}px`, left: `${x}px`, color: fontColor }">
         {{ text }}
     </v-btn>

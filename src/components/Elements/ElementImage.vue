@@ -14,7 +14,7 @@ defineProps({
 });
 </script>
 <template>
-    <img :src="src" :width="width" :height="height" :style="{ top: `${y}px`, left: `${x}px` }" />
+    <img data-type="image" :src="src" :width="width" :height="height" :style="{ top: `${y}px`, left: `${x}px` }" />
 </template>
 <style lang="scss" scoped>
 img {

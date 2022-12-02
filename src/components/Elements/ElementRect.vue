@@ -20,7 +20,7 @@ const props = defineProps({
 });
 </script>
 <template>
-    <div class="element-rect"
+    <div class="element-rect" data-type="rect"
         :style="{ backgroundColor: color, width: `${width}px`, height: `${height}px`, top: `${y}px`, left: `${x}px` }">
     </div>
 </template>

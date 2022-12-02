@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps({
-    color: String,
+    fontColor: String,
     text: String,
     fontSize: {
         type: Number,
@@ -17,7 +17,7 @@ const props = defineProps({
 });
 </script>
 <template>
-    <div class="element-text" :style="{ fontSize: `${fontSize}px`, color: color, top: `${y}px`, left: `${x}px` }">
+    <div class="element-text" data-type="text" :style="{ fontSize: `${fontSize}px`, color: fontColor, top: `${y}px`, left: `${x}px` }">
         {{ text }}
     </div>
 </template>

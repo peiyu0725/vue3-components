@@ -7,6 +7,7 @@ import ElementButton from '../components/Elements/ElementButton.vue'
 import ElementRect from '../components/Elements/ElementRect.vue'
 import ElementImage from '../components/Elements/ElementImage.vue'
 import ElementText from '../components/Elements/ElementText.vue'
+import ColorPicker from './ColorPicker.vue'
 
 const moveableRef = ref(null)
 const selectoRef = ref(null)
@@ -14,12 +15,19 @@ const uploadRef = ref(null)
 const selectedItems = ref([])
 const dragItem = ref(null)
 const catchImageEvent = ref(null)
+const fontSize = reactive([12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 64, 72])
+const settingMapping = reactive({
+  text: ['text', 'fontSize', 'fontColor'],
+  button: ['text', 'fontSize', 'fontColor', 'bgColor'],
+  rect: ['bgColor'],
+  image: []
+})
 const elementMapping = computed(() => {
   return {
     text: {
       type: 'text',
       options: {
-        color: '#000000',
+        fontColor: '#000000',
         text: 'Text',
       }
     },
@@ -43,11 +51,7 @@ const elementMapping = computed(() => {
     },
     image: {
       type: 'image',
-      options: {
-        // src: `https://picsum.photos/1920/1080?random&time=${Date.now()}`,
-        // width: 576,
-        // height: 324
-      }
+      options: {}
     }
   }
 })
@@ -140,6 +144,25 @@ const handleDragListItemStart = ({ oldIndex }) => {
 const handleDragListItemEnd = () => {
   dragItem.value = null
 }
+const addElement = (x, y) => {
+  const item = elementMapping.value[dragItem.value.value]
+  const obj = {
+    id: Date.now(),
+    type: item.type,
+    options: {
+      ...item.options,
+      x,
+      y
+    }
+  }
+  if (dragItem.value.value === 'image') {
+    catchImageEvent.value = obj
+    uploadRef.value.click()
+  }
+  else {
+    elements.push(obj)
+  }
+}
 const handleTouchEndListItem = (e) => {
   var endTarget = document.elementFromPoint(
     e.changedTouches[0].clientX,
@@ -163,25 +186,6 @@ const handleTouchEndListItem = (e) => {
       e.changedTouches[0].clientY - y)
   }
 }
-const addElement = (x, y) => {
-  const item = elementMapping.value[dragItem.value.value]
-  const obj = {
-    id: Date.now(),
-    type: item.type,
-    options: {
-      ...item.options,
-      x,
-      y
-    }
-  }
-  if (dragItem.value.value === 'image') {
-    catchImageEvent.value = obj
-    uploadRef.value.click()
-  }
-  else {
-    elements.push(obj)
-  }
-}
 const handleDropListItem = (e) => {
   if (!dragItem.value) return
   const { offsetX, offsetY } = e
@@ -201,14 +205,35 @@ const handleUploadFile = (e) => {
   img.src = src
   uploadRef.value.value = ''
 }
+const handleUpdateColor = (val, type) => {
+  if (!selectedItems.value[0]) return
+  const id = selectedItems.value[0].dataset.id
+  const index = elements.findIndex(element => element.id === Number(id))
+  elements[index].options[type] = val
+}
+const showSetting = (type) => {
+  if (selectedItems.value.length > 1) {
+    return false
+  }
+  else {
+    const itemType = selectedItems.value[0].dataset.type
+    if (!itemType) return false
+    return settingMapping[itemType].includes(type)
+  }
+}
+
+const getElementColorById = (id, type) => {
+  const index = elements.findIndex(element => element.id === Number(id))
+  return elements[index].options[type]
+}
 
 </script>
 <template>
   <div class="editor">
     <input type="file" ref="uploadRef" accept="image/*" class="d-none" @change="handleUploadFile" />
     <div class="editor__drag-area" @drop="handleDropListItem" @dragover.prevent>
-      <component v-for="item in elements" v-bind="item.options" :is="components[item.type]" :key="item.id"
-        class="element">
+      <component v-for="item in elements" v-bind="item.options" :data-id="item.id" :is="components[item.type]"
+        :key="item.id" class="element">
       </component>
       <Moveable ref="moveableRef" v-bind="moveableOptions" @drag="onDrag" @resize="onResize" @clickGroup="onClickGroup"
         @dragGroup="onDragGroup" />
@@ -217,6 +242,7 @@ const handleUploadFile = (e) => {
     </div>
     <div class="editor__drag-list">
       <v-list>
+        <v-list-subheader>Elements</v-list-subheader>
         <draggable v-model="elementList" :sort="false" itemKey="value" @start="handleDragListItemStart"
           @end="handleDragListItemEnd">
           <template #item="{ element }">
@@ -224,10 +250,51 @@ const handleUploadFile = (e) => {
           </template>
         </draggable>
       </v-list>
+      <v-divider></v-divider>
+      <Transition name="slide-fade">
+        <div class="setting-block" v-if="selectedItems.length > 0">
+          <div class="setting-title">Setting</div>
+          <div>
+            <div class="setting-subtitle">Layer</div>
+            <div class="d-flex">
+              <v-btn variant="plain">
+                <v-icon size="24">mdi-format-align-top</v-icon>
+              </v-btn>
+              <v-btn variant="plain">
+                <v-icon size="24">mdi-format-align-bottom</v-icon>
+              </v-btn>
+              <v-btn variant="plain">
+                <v-icon size="24">mdi-format-vertical-align-top</v-icon>
+              </v-btn>
+              <v-btn variant="plain">
+                <v-icon size="24">mdi-format-vertical-align-bottom</v-icon>
+              </v-btn>
+            </div>
+          </div>
+          <div v-if="showSetting('text')">
+            <div class="setting-subtitle">Text</div>
+            <v-text-field placeholder="Text" density="compact" hide-details></v-text-field>
+          </div>
+          <div v-if="showSetting('fontSize')">
+            <div class="setting-subtitle">Font Size</div>
+            <v-text-field placeholder="Font Size" density="compact" type="number" :min="8" hide-details></v-text-field>
+          </div>
+          <div v-if="showSetting('fontColor')">
+            <div class="setting-subtitle">Font Color</div>
+            <ColorPicker :color="getElementColorById(selectedItems[0].dataset.id, 'fontColor')"
+              @change="handleUpdateColor($event, 'fontColor')" />
+          </div>
+          <div v-if="showSetting('bgColor')">
+            <div class="setting-subtitle">Background Color</div>
+            <ColorPicker :color="getElementColorById(selectedItems[0].dataset.id, 'color')"
+              @change="handleUpdateColor($event, 'color')" />
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
-<style lang="scss" scoped>
+<style lang="scss">
 .editor {
   width: 100%;
   height: 100%;
@@ -271,17 +338,74 @@ const handleUploadFile = (e) => {
   &__drag-list {
     width: 250px;
     height: 100%;
+    background-color: #F3F3F3;
+    border-radius: 10px;
+
+    .setting-block {
+      height: calc(100% - 250px);
+      padding: 10px 16px;
+
+      .v-btn {
+        padding: 0;
+        margin: 0;
+        min-width: 40px;
+      }
+
+      .v-field {
+        border: 1px solid #979797;
+        border-radius: 5px;
+
+        &__overlay {
+          display: none;
+        }
+
+        &__outline {
+
+          &::before,
+          &::after {
+            display: none !important;
+          }
+        }
+      }
+
+      .setting-title,
+      .setting-subtitle {
+        font-weight: 500;
+        color: #848484;
+      }
+
+      .setting-title {
+        font-size: 14px;
+        margin: 4px 0;
+      }
+
+      .setting-subtitle {
+        font-size: 12px;
+        margin: 14px 0 4px 0;
+      }
+    }
 
     .v-list {
-      height: 100%;
+      height: 250px;
       padding: 0;
-      background-color: #f3f3f35f;
+      background-color: #F3F3F3;
       overflow: visible;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+
+      .v-list-subheader {
+        border-radius: 10px;
+      }
 
       &-item {
         cursor: grab;
+        font-size: 14px;
       }
     }
+  }
+
+  &__element-setting {
+    position: absolute;
   }
 
   .element {
