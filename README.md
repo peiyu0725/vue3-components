@@ -20,5 +20,5 @@ Library: Vuetify3、Fullcalendar、v-calendar、Moveable、Selecto、vue.draggab
 - [x] 將列表中的物件拖曳到畫布中可以顯示相對應的元件
 - [x] 縮放、移動元件
 - [x] 元件不可超過畫布範圍、有對齊線
-- [ ] 調整元件階層、鎖定元件
-- [ ] 編輯元件內容：文字、顏色等
+- [x] 調整元件階層、鎖定元件
+- [x] 編輯元件內容：文字、顏色等

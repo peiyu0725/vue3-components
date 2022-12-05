@@ -405,7 +405,7 @@ onUnmounted(() => {
       <v-divider></v-divider>
       <v-list class="layer-block" density="compact">
         <v-list-subheader>Layer</v-list-subheader>
-        <draggable v-model="elements" itemKey="id" class="layer-list">
+        <draggable v-model="elements" :sort="false" itemKey="id" class="layer-list">
           <template #item="{ element }">
             <v-list-item :value="element.id" :active="false" @click="handleElementActive(element.id)">
               {{ element.type }}
