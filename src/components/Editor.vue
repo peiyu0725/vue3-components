@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted, getCurrentInstance } from "vue"
+import { ref, computed, reactive, onMounted, onUnmounted } from "vue"
 import Moveable from "vue3-moveable"
 import { VueSelecto } from "vue3-selecto"
 import draggable from "vuedraggable"
@@ -9,7 +9,6 @@ import ElementImage from '../components/Elements/ElementImage.vue'
 import ElementText from '../components/Elements/ElementText.vue'
 import ColorPicker from './ColorPicker.vue'
 
-const instance = getCurrentInstance();
 const moveableRef = ref(null)
 const selectoRef = ref(null)
 const uploadRef = ref(null)
@@ -132,16 +131,21 @@ const removeActive = (e) => {
   }
   selectedItems.value = []
 }
-
 const onClickGroup = (e) => {
   selectoRef.value.clickTarget(e.inputEvent, e.inputTarget);
-};
+}
 const onResize = ({ target, width, height }) => {
   target.style.width = `${width}px`;
   target.style.height = `${height}px`;
-};
+}
+const onResizeEnd = ({ target }) => {
+  const id = Number(target.dataset.id)
+  const findIndex = elements.findIndex(ele => ele.id === id)
+  elements[findIndex].options.width = target.clientWidth
+  elements[findIndex].options.height = target.clientHeight
+}
 const onSelect = (e) => {
-  selectedItems.value = e.selected.filter(target => !target.dataset.lock || target.dataset.lock === 'false');
+  selectedItems.value = e.selected.filter(target => target.dataset.lock === 'false');
 };
 const onSelectEnd = (e) => {
   if (e.isDragStart) {
@@ -165,6 +169,7 @@ const addElement = (x, y) => {
   const obj = {
     id: Date.now(),
     type: item.type,
+    lock: false,
     options: {
       ...item.options,
       x,
@@ -256,12 +261,11 @@ const handleElementLock = (id) => {
   if (findIndex === -1) return
   selectedItems.value = []
   elements[findIndex].lock = !elements[findIndex].lock
-  instance.ctx.$forceUpdate();
 }
 const handleElementActive = (id) => {
   const targets = document.getElementsByClassName('element')
   const matchTarget = Array.from(targets).find(target => Number(target.dataset.id) === id)
-  if (!matchTarget || matchTarget.dataset.lock) {
+  if (!matchTarget || matchTarget.dataset.lock === 'true') {
     return
   }
   else {
@@ -311,8 +315,8 @@ onUnmounted(() => {
       <component v-for="item in elements" v-bind="item.options" :data-id="item.id" :data-lock="item.lock"
         :is="components[item.type]" :key="item.id" class="element">
       </component>
-      <Moveable ref="moveableRef" v-bind="moveableOptions" @drag="onDrag" @resize="onResize" @clickGroup="onClickGroup"
-        @dragGroup="onDragGroup" />
+      <Moveable ref="moveableRef" v-bind="moveableOptions" @drag="onDrag" @resize="onResize" @resizeEnd="onResizeEnd"
+        @clickGroup="onClickGroup" @dragGroup="onDragGroup" />
       <VueSelecto ref="selectoRef" v-bind="selectoOptions" @dragStart="onDragStart" @select="onSelect"
         @selectEnd="onSelectEnd" />
     </div>
