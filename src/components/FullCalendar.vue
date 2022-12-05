@@ -15,7 +15,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import allLocales from "@fullcalendar/core/locales-all";
 
 const props = defineProps({
-    drawerRail: Boolean,
+    drawerRail: Boolean
 });
 const instance = getCurrentInstance();
 const calendarRef = ref(null);
@@ -25,7 +25,7 @@ const viewItems = reactive([
     { title: "月", value: "dayGridMonth" },
     { title: "周", value: "timeGridWeek" },
     { title: "天", value: "timeGridDay" },
-    { title: "列表", value: "listWeek" },
+    { title: "列表", value: "listWeek" }
 ]);
 
 const handleViewSelect = (val) => {
@@ -63,36 +63,42 @@ onMounted(() => {
         height: "calc(100% - 56px)",
         dayMaxEventRows: true,
         eventColor: "#00B0FF",
-        events: "https://fullcalendar.io/demo-events.json?overload-day",
+        events: "https://fullcalendar.io/demo-events.json?overload-day"
     });
     calendar.value.render();
 });
 </script>
 <template>
-    <div class="header-toolbar">
-        <div class="header-toolbar__btns">
-            <v-btn variant="outlined" size="small" icon @click="handlePrev">
-                <v-icon size="28">mdi-chevron-left</v-icon>
-            </v-btn>
-            <v-btn variant="outlined" size="small" icon @click="handleNext">
-                <v-icon size="28">mdi-chevron-right</v-icon>
-            </v-btn>
-            <v-btn variant="outlined" @click="handleToday"> 今天 </v-btn>
+    <div class="calendar">
+        <div class="header-toolbar">
+            <div class="header-toolbar__btns">
+                <v-btn variant="outlined" size="small" icon @click="handlePrev">
+                    <v-icon size="28">mdi-chevron-left</v-icon>
+                </v-btn>
+                <v-btn variant="outlined" size="small" icon @click="handleNext">
+                    <v-icon size="28">mdi-chevron-right</v-icon>
+                </v-btn>
+                <v-btn variant="outlined" @click="handleToday"> 今天 </v-btn>
+            </div>
+            <div class="header-toolbar__title" v-if="calendar">
+                {{ calendar.view.title }}
+            </div>
+            <div class="header-toolbar__select">
+                <v-select v-model="view" :active="true" :autofocus="true" :menu-props="{ offset: 3 }" :items="viewItems"
+                    density="compact" append-inner-icon="mdi-chevron-down" hide-details
+                    @update:modelValue="handleViewSelect"></v-select>
+            </div>
         </div>
-        <div class="header-toolbar__title" v-if="calendar">
-            {{ calendar.view.title }}
-        </div>
-        <div class="header-toolbar__select">
-            <v-select v-model="view" :active="true" :autofocus="true" :menu-props="{
-                offset: 3,
-            }" :items="viewItems" density="compact" append-inner-icon="mdi-chevron-down" hide-details
-                @update:modelValue="handleViewSelect"></v-select>
-        </div>
+        <div ref="calendarRef"></div>
     </div>
-    <div ref="calendarRef"></div>
 </template>
 <style lang="scss" scoped>
 $primaryLightPressed: #008edb;
+
+.calendar {
+    padding: 12px;
+    height: 100%;
+}
 
 .v-btn--density-default {
     border-radius: 8px;

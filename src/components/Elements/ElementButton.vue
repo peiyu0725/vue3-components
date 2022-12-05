@@ -2,6 +2,10 @@
 defineProps({
     color: String,
     fontColor: String,
+    fontSize: {
+        type: [Number, String],
+        default: 16
+    },
     width: {
         type: Number,
         default: 100
@@ -23,7 +27,7 @@ defineProps({
 </script>
 <template>
     <v-btn class="element-button" data-type="button" variant="flat" :ripple="false" :color="color" v-bind="$attrs"
-        :style="{ width: `${width}px`, height: `${height}px`, top: `${y}px`, left: `${x}px`, color: fontColor }">
+        :style="{ width: `${width}px`, height: `${height}px`, top: `${y}px`, left: `${x}px`, color: fontColor, fontSize: `${fontSize}px` }">
         {{ text }}
     </v-btn>
 </template>

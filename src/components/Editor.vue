@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive } from "vue"
+import { ref, computed, reactive, onMounted, onUnmounted, getCurrentInstance } from "vue"
 import Moveable from "vue3-moveable"
 import { VueSelecto } from "vue3-selecto"
 import draggable from "vuedraggable"
@@ -9,6 +9,7 @@ import ElementImage from '../components/Elements/ElementImage.vue'
 import ElementText from '../components/Elements/ElementText.vue'
 import ColorPicker from './ColorPicker.vue'
 
+const instance = getCurrentInstance();
 const moveableRef = ref(null)
 const selectoRef = ref(null)
 const uploadRef = ref(null)
@@ -18,8 +19,8 @@ const catchImageEvent = ref(null)
 const fontSize = reactive([12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 64, 72])
 const settingMapping = reactive({
   text: ['text', 'fontSize', 'fontColor'],
-  button: ['text', 'fontSize', 'fontColor', 'bgColor'],
-  rect: ['bgColor'],
+  button: ['text', 'fontSize', 'fontColor', 'color'],
+  rect: ['color'],
   image: []
 })
 const elementMapping = computed(() => {
@@ -29,6 +30,7 @@ const elementMapping = computed(() => {
       options: {
         fontColor: '#000000',
         text: 'Text',
+        fontSize: 16
       }
     },
     rect: {
@@ -46,7 +48,8 @@ const elementMapping = computed(() => {
         fontColor: '#ffffff',
         text: 'Button',
         width: 120,
-        height: 36
+        height: 36,
+        fontSize: 16
       }
     },
     image: {
@@ -57,10 +60,10 @@ const elementMapping = computed(() => {
 })
 const elements = reactive([])
 const elementList = reactive([
-  { text: 'Text', value: 'text' },
-  { text: 'Button', value: 'button' },
-  { text: 'Rect', value: 'rect' },
-  { text: 'Image', value: 'image' }
+  { text: 'Text', value: 'text', icon: 'mdi-format-text' },
+  { text: 'Button', value: 'button', icon: 'mdi-gesture-tap-button' },
+  { text: 'Rect', value: 'rect', icon: 'mdi-rectangle' },
+  { text: 'Image', value: 'image', icon: 'mdi-image' }
 ])
 const components = {
   button: ElementButton,
@@ -117,6 +120,19 @@ const onDragGroup = (e) => {
     ev.target.style.transform = ev.transform;
   });
 };
+
+const removeActive = (e) => {
+  if (
+    e.target.classList.contains('v-btn__content') ||
+    e.target.classList.contains('element') ||
+    e.target.classList.contains('moveable-area') ||
+    e.target.classList.contains('moveable-direction')
+  ) {
+    return
+  }
+  selectedItems.value = []
+}
+
 const onClickGroup = (e) => {
   selectoRef.value.clickTarget(e.inputEvent, e.inputTarget);
 };
@@ -125,7 +141,7 @@ const onResize = ({ target, width, height }) => {
   target.style.height = `${height}px`;
 };
 const onSelect = (e) => {
-  selectedItems.value = e.selected;
+  selectedItems.value = e.selected.filter(target => !target.dataset.lock || target.dataset.lock === 'false');
 };
 const onSelectEnd = (e) => {
   if (e.isDragStart) {
@@ -205,14 +221,67 @@ const handleUploadFile = (e) => {
   img.src = src
   uploadRef.value.value = ''
 }
-const handleUpdateColor = (val, type) => {
+const handleUpdateOptions = (val, type) => {
   if (!selectedItems.value[0]) return
   const id = selectedItems.value[0].dataset.id
   const index = elements.findIndex(element => element.id === Number(id))
   elements[index].options[type] = val
 }
+const handleUpdateLayer = (type) => {
+  if (!selectedItems.value[0]) return
+  const oldIndex = elements.findIndex(
+    (item) => item.id === Number(selectedItems.value[0].dataset.id)
+  )
+  let newIndex = null
+  switch (type) {
+    case 'front':
+      newIndex = oldIndex + 1
+      break
+    case 'back':
+      newIndex = oldIndex === 0 ? 0 : oldIndex - 1
+      break
+    case 'forward':
+      newIndex = elements.length
+      break
+    case 'backward':
+      newIndex = 0
+      break
+  }
+  var element = elements[oldIndex]
+  elements.splice(oldIndex, 1)
+  elements.splice(newIndex, 0, element)
+}
+const handleElementLock = (id) => {
+  const findIndex = elements.findIndex(ele => ele.id === id)
+  if (findIndex === -1) return
+  selectedItems.value = []
+  elements[findIndex].lock = !elements[findIndex].lock
+  instance.ctx.$forceUpdate();
+}
+const handleElementActive = (id) => {
+  const targets = document.getElementsByClassName('element')
+  const matchTarget = Array.from(targets).find(target => Number(target.dataset.id) === id)
+  if (!matchTarget || matchTarget.dataset.lock) {
+    return
+  }
+  else {
+    selectedItems.value = [matchTarget]
+  }
+}
+const handleKeydown = (e) => {
+  const keyCode = e.keyCode
+  if (keyCode === 46 && selectedItems.value.length > 0) {
+    selectedItems.value.forEach(item => {
+      const findIndex = elements.findIndex(ele => ele.id === Number(item.dataset.id))
+      if (findIndex === -1) return
+      elements.splice(findIndex, 1)
+    })
+    selectedItems.value = []
+  }
+}
+
 const showSetting = (type) => {
-  if (selectedItems.value.length > 1) {
+  if (selectedItems.value.length < 1 || selectedItems.value.length > 1) {
     return false
   }
   else {
@@ -221,19 +290,26 @@ const showSetting = (type) => {
     return settingMapping[itemType].includes(type)
   }
 }
-
-const getElementColorById = (id, type) => {
+const getElementOptionsById = (id, type) => {
   const index = elements.findIndex(element => element.id === Number(id))
   return elements[index].options[type]
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 </script>
 <template>
   <div class="editor">
     <input type="file" ref="uploadRef" accept="image/*" class="d-none" @change="handleUploadFile" />
-    <div class="editor__drag-area" @drop="handleDropListItem" @dragover.prevent>
-      <component v-for="item in elements" v-bind="item.options" :data-id="item.id" :is="components[item.type]"
-        :key="item.id" class="element">
+    <div class="editor__drag-area" @pointerdown.stop="removeActive" @drop="handleDropListItem" @dragover.prevent>
+      <component v-for="item in elements" v-bind="item.options" :data-id="item.id" :data-lock="item.lock"
+        :is="components[item.type]" :key="item.id" class="element">
       </component>
       <Moveable ref="moveableRef" v-bind="moveableOptions" @drag="onDrag" @resize="onResize" @clickGroup="onClickGroup"
         @dragGroup="onDragGroup" />
@@ -241,56 +317,106 @@ const getElementColorById = (id, type) => {
         @selectEnd="onSelectEnd" />
     </div>
     <div class="editor__drag-list">
-      <v-list>
+      <v-list class="element-block" density="compact">
         <v-list-subheader>Elements</v-list-subheader>
         <draggable v-model="elementList" :sort="false" itemKey="value" @start="handleDragListItemStart"
           @end="handleDragListItemEnd">
           <template #item="{ element }">
-            <v-list-item :value="element.value" @touchend="handleTouchEndListItem">{{ element.text }}</v-list-item>
+            <v-list-item :value="element.value" :active="false" @touchend="handleTouchEndListItem">{{ element.text
+            }}</v-list-item>
           </template>
         </draggable>
       </v-list>
       <v-divider></v-divider>
-      <Transition name="slide-fade">
-        <div class="setting-block" v-if="selectedItems.length > 0">
-          <div class="setting-title">Setting</div>
-          <div>
-            <div class="setting-subtitle">Layer</div>
-            <div class="d-flex">
-              <v-btn variant="plain">
-                <v-icon size="24">mdi-format-align-top</v-icon>
-              </v-btn>
-              <v-btn variant="plain">
-                <v-icon size="24">mdi-format-align-bottom</v-icon>
-              </v-btn>
-              <v-btn variant="plain">
-                <v-icon size="24">mdi-format-vertical-align-top</v-icon>
-              </v-btn>
-              <v-btn variant="plain">
-                <v-icon size="24">mdi-format-vertical-align-bottom</v-icon>
-              </v-btn>
+      <div class="setting-block">
+        <div class="block-title">Setting</div>
+        <Transition name="slide-fade">
+          <div v-if="(selectedItems.length === 1)">
+            <div class="block-subtitle">Layer</div>
+            <div class="d-flex justify-space-around">
+              <v-tooltip text="Front" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-btn v-bind="props" variant="plain" @click="handleUpdateLayer('front')">
+                    <v-icon size="24">mdi-format-vertical-align-top</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Back" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-btn v-bind="props" variant="plain" @click="handleUpdateLayer('back')">
+                    <v-icon size="24">mdi-format-vertical-align-bottom</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Forward" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-btn v-bind="props" variant="plain" @click="handleUpdateLayer('forward')">
+                    <v-icon size="24">mdi-format-align-top</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Backward" location="bottom">
+                <template v-slot:activator="{ props }">
+                  <v-btn v-bind="props" variant="plain" @click="handleUpdateLayer('backward')">
+                    <v-icon size="24">mdi-format-align-bottom</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
             </div>
           </div>
+        </Transition>
+        <Transition name="slide-fade">
           <div v-if="showSetting('text')">
-            <div class="setting-subtitle">Text</div>
-            <v-text-field placeholder="Text" density="compact" hide-details></v-text-field>
+            <div class="block-subtitle">Text</div>
+            <v-text-field placeholder="Text" density="compact"
+              :model-value="getElementOptionsById(selectedItems[0].dataset.id, 'text')" hide-details
+              @update:modelValue="handleUpdateOptions($event, 'text')"></v-text-field>
           </div>
+        </Transition>
+        <Transition name="slide-fade">
           <div v-if="showSetting('fontSize')">
-            <div class="setting-subtitle">Font Size</div>
-            <v-text-field placeholder="Font Size" density="compact" type="number" :min="8" hide-details></v-text-field>
+            <div class="block-subtitle">Font Size</div>
+            <v-text-field placeholder="Font Size" density="compact" type="number"
+              :model-value="getElementOptionsById(selectedItems[0].dataset.id, 'fontSize')" :min="8" hide-details
+              @update:modelValue="handleUpdateOptions($event, 'fontSize')"></v-text-field>
           </div>
-          <div v-if="showSetting('fontColor')">
-            <div class="setting-subtitle">Font Color</div>
-            <ColorPicker :color="getElementColorById(selectedItems[0].dataset.id, 'fontColor')"
-              @change="handleUpdateColor($event, 'fontColor')" />
-          </div>
-          <div v-if="showSetting('bgColor')">
-            <div class="setting-subtitle">Background Color</div>
-            <ColorPicker :color="getElementColorById(selectedItems[0].dataset.id, 'color')"
-              @change="handleUpdateColor($event, 'color')" />
-          </div>
+        </Transition>
+        <div class="d-flex justify-space-between">
+          <Transition name="slide-fade">
+            <div v-if="showSetting('fontColor')">
+              <div class="block-subtitle">Font Color</div>
+              <ColorPicker :color="getElementOptionsById(selectedItems[0].dataset.id, 'fontColor')"
+                @change="handleUpdateOptions($event, 'fontColor')" />
+            </div>
+          </Transition>
+          <Transition name="slide-fade">
+            <div v-if="showSetting('color')">
+              <div class="block-subtitle">Background Color</div>
+              <ColorPicker :color="getElementOptionsById(selectedItems[0].dataset.id, 'color')"
+                @change="handleUpdateOptions($event, 'color')" />
+            </div>
+          </Transition>
         </div>
-      </Transition>
+      </div>
+      <v-divider></v-divider>
+      <v-list class="layer-block" density="compact">
+        <v-list-subheader>Layer</v-list-subheader>
+        <draggable v-model="elements" itemKey="id" class="layer-list">
+          <template #item="{ element }">
+            <v-list-item :value="element.id" :active="false" @click="handleElementActive(element.id)">
+              {{ element.type }}
+              <template #prepend>
+                <v-icon>{{ elementList.find(item => item.value === element.type).icon }}</v-icon>
+              </template>
+              <template #append>
+                <v-icon @click.stop="handleElementLock(element.id)">
+                  {{ element.lock ? 'mdi-lock' : 'mdi-lock-open-outline' }}
+                </v-icon>
+              </template>
+            </v-list-item>
+          </template>
+        </draggable>
+      </v-list>
     </div>
   </div>
 </template>
@@ -306,7 +432,7 @@ const getElementColorById = (id, type) => {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    width: calc(100% - 250px);
+    width: calc(100% - 280px);
     height: 100%;
     background-image: -webkit-repeating-radial-gradient(bottom right,
         rgba(0, 0, 0, 0.4),
@@ -336,19 +462,35 @@ const getElementColorById = (id, type) => {
   }
 
   &__drag-list {
-    width: 250px;
+    width: 280px;
     height: 100%;
     background-color: #F3F3F3;
     border-radius: 10px;
 
+    .block-title,
+    .block-subtitle {
+      font-weight: 500;
+      color: #848484;
+    }
+
+    .block-title {
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    .block-subtitle {
+      font-size: 12px;
+      margin: 14px 0 4px 0;
+    }
+
     .setting-block {
-      height: calc(100% - 250px);
+      height: 360px;
       padding: 10px 16px;
 
       .v-btn {
         padding: 0;
         margin: 0;
-        min-width: 40px;
+        min-width: 36px;
       }
 
       .v-field {
@@ -367,39 +509,51 @@ const getElementColorById = (id, type) => {
           }
         }
       }
-
-      .setting-title,
-      .setting-subtitle {
-        font-weight: 500;
-        color: #848484;
-      }
-
-      .setting-title {
-        font-size: 14px;
-        margin: 4px 0;
-      }
-
-      .setting-subtitle {
-        font-size: 12px;
-        margin: 14px 0 4px 0;
-      }
     }
 
-    .v-list {
-      height: 250px;
+    .element-block,
+    .layer-block {
       padding: 0;
       background-color: #F3F3F3;
       overflow: visible;
-      border-top-left-radius: 10px;
-      border-top-right-radius: 10px;
 
       .v-list-subheader {
         border-radius: 10px;
+        padding: 10px 0;
       }
 
-      &-item {
+      .v-list-item {
         cursor: grab;
         font-size: 14px;
+        text-transform: uppercase;
+      }
+    }
+
+    .element-block {
+      height: 210px;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+
+    .layer-block {
+      height: calc(100% - 210px - 360px);
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+
+      .layer-list {
+        height: calc(100% - 42px);
+        overflow-y: auto;
+        padding-bottom: 10px;
+      }
+
+      .v-list-item {
+        text-transform: uppercase;
+      }
+
+      .v-list-item__prepend {
+        i {
+          margin-inline-end: 16px;
+        }
       }
     }
   }
@@ -411,6 +565,7 @@ const getElementColorById = (id, type) => {
   .element {
     position: absolute;
     transition: none;
+    z-index: 1;
   }
 }
 </style>

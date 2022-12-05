@@ -47,6 +47,10 @@ const range = reactive({
   </div>
 </template>
 <style lang="scss">
+.picker-wrapper {
+  padding: 12px;
+}
+
 .range-title {
   margin: 20px 0 5px 0;
 }

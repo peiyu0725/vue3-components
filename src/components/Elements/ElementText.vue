@@ -3,7 +3,7 @@ const props = defineProps({
     fontColor: String,
     text: String,
     fontSize: {
-        type: Number,
+        type: [Number, String],
         default: 16
     },
     x: {
