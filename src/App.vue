@@ -6,7 +6,8 @@ const rail = ref(true);
 const items = reactive([
   { title: "Calendar", value: "calendar", icon: "mdi-calendar-month", url: '/' },
   { title: "DateTime Picker", value: "picker", icon: "mdi-clock-outline", url: '/dateTimePicker' },
-  { title: "Element Editor", value: "editor", icon: "mdi-drawing-box", url: '/editor' }
+  { title: "Element Editor", value: "editor", icon: "mdi-drawing-box", url: '/editor' },
+  { title: "Video Player", value: "video", icon: "mdi-video", url: '/videoPlayer' }
 ]);
 const active = ref("calendar");
 const onChangeActive = (val) => {

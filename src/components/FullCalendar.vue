@@ -6,8 +6,7 @@ import {
     getCurrentInstance,
     watch
 } from "vue";
-import "@fullcalendar/core/vdom"; // solves problem with Vite
-import { Calendar } from "@fullcalendar/core";
+import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
@@ -27,6 +26,18 @@ const viewItems = reactive([
     { title: "天", value: "timeGridDay" },
     { title: "列表", value: "listWeek" }
 ]);
+
+const options = ref({
+    plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
+    locales: allLocales,
+    locale: "zh-tw",
+    initialView: "dayGridMonth",
+    headerToolbar: false,
+    height: "calc(100% - 56px)",
+    dayMaxEventRows: true,
+    eventColor: "#00B0FF",
+    events: "https://fullcalendar.io/demo-events.json?overload-day"
+})
 
 const handleViewSelect = (val) => {
     calendar.value.changeView(val);
@@ -53,20 +64,6 @@ watch(props, (val) => {
         updateSize();
     }, 200);
 });
-onMounted(() => {
-    calendar.value = new Calendar(calendarRef.value, {
-        plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-        locales: allLocales,
-        locale: "zh-tw",
-        initialView: "dayGridMonth",
-        headerToolbar: false,
-        height: "calc(100% - 56px)",
-        dayMaxEventRows: true,
-        eventColor: "#00B0FF",
-        events: "https://fullcalendar.io/demo-events.json?overload-day"
-    });
-    calendar.value.render();
-});
 </script>
 <template>
     <div class="calendar">
@@ -89,7 +86,7 @@ onMounted(() => {
                     @update:modelValue="handleViewSelect"></v-select>
             </div>
         </div>
-        <div ref="calendarRef"></div>
+        <FullCalendar ref="calendarRef" :options="options"></FullCalendar>
     </div>
 </template>
 <style lang="scss" scoped>
